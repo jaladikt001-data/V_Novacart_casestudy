@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bronze_work — Incremental Bronze Ingestion</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:960px;margin:0 auto;padding:24px;background:#f8f9fa;color:#212529;line-height:1.6}
+.nb-header{background:linear-gradient(135deg,#1a365d,#2b6cb0);color:#fff;padding:24px 28px;border-radius:10px;margin-bottom:28px}
+.nb-header h1{margin:0;font-size:24px}
+.nb-header p{margin:6px 0 0;opacity:.85;font-size:14px}
+.cell{margin-bottom:20px;border-radius:8px;overflow:hidden;border:1px solid #dee2e6;background:#fff}
+.cell-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:12px;font-weight:600}
+.cell-bar.md-bar{background:#d4edda;color:#155724}
+.cell-bar.code-bar{background:#cce5ff;color:#004085}
+.badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:auto}
+.badge-ok{background:#28a745;color:#fff}
+.badge-err{background:#dc3545;color:#fff}
+.badge-skip{background:#6c757d;color:#fff}
+.md-body{padding:16px 20px}
+.md-body h1{font-size:1.4em;color:#1a365d;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-top:0}
+.md-body h2{font-size:1.2em;color:#2b6cb0;margin-top:0}
+.md-body strong{color:#1a202c}
+.md-body ul,.md-body ol{padding-left:24px}
+.md-body code{background:#e2e8f0;padding:2px 6px;border-radius:4px;font-size:0.9em}
+pre.code-body{margin:0;padding:16px 20px;background:#1e1e2e;color:#cdd6f4;font-family:'JetBrains Mono','Fira Code',Consolas,monospace;font-size:13px;line-height:1.55;overflow-x:auto;white-space:pre}
+.footer{text-align:center;padding:24px;color:#6c757d;font-size:12px;border-top:1px solid #dee2e6;margin-top:20px}
+</style>
+</head>
+<body>
+
+<div class="nb-header">
+<h1>Bronze_work</h1>
+<p>Incremental Bronze ingestion with rerun-safe watermark logic</p>
+</div>
+
+<!-- Cell 1: Markdown -->
+<div class="cell">
+<div class="cell-bar md-bar">Markdown — Cell 1</div>
+<div class="md-body">
+<h1>BronzeWork Incremental</h1>
+<p><strong>Incremental Bronze ingestion with rerun-safe watermark logic</strong></p>
+</div>
+</div>
+
+<!-- Cell 2: Markdown -->
+<div class="cell">
+<div class="cell-bar md-bar">Markdown — Cell 2</div>
+<div class="md-body">
+<h1>Setup 1 — Imports and setup</h1>
+<p><strong>This cell imports the pyspark and delta helpers used in notebook, switches to correct catalog, and makes sure the Bronze schema exists before start loading data</strong></p>
+</div>
+</div>
+
+<!-- Cell 3: Python -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 3 <span class="badge badge-ok">✓ Success</span></div>
+<pre class="code-body">from pyspark.sql import functions as F
+from delta.tables import DeltaTable
+from datetime import datetime
+import uuid
+
+
+datetime.utcnow()</pre>
+</div>
+
+<!-- Cell 4: Python -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 4 <span class="badge badge-ok">✓ Success</span></div>
+<pre class="code-body">spark.sql("use catalog venk_novacart")</pre>
+</div>
+
+<!-- Cell 5: Python -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 5 <span class="badge badge-ok">✓ Success</span></div>
+<pre class="code-body">spark.sql("create schema if not exists bronze_schema")</pre>
+</div>
+
+<!-- Cell 6: Markdown -->
+<div class="cell">
+<div class="cell-bar md-bar">Markdown — Cell 6</div>
+<div class="md-body">
+<h2>Step 2 — Bronze control table</h2>
+<p>This table stores the <strong>watermark</strong> for each source table.</p>
+<p>It helps the pipeline remember:</p>
+<ul>
+<li>the latest timestamp already processed</li>
+<li>the latest primary key processed at that timestamp</li>
+<li>how many rows were written in the last run</li>
+</ul>
+<p>This is what makes the Bronze load incremental and rerun safe.</p>
+</div>
+</div>
+
+<!-- Cell 7: Python -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 7 <span class="badge badge-ok">✓ Success</span></div>
+<pre class="code-body">spark.sql("""
+          create table if not exists bronze_schema.ingestion_control(
+            layer string,
+            table_name string,
+            ts_col string,
+            pk_col string,
+            last_successful_ts timestamp,
+            last_successful_pk bigint,
+            last_run_id string,
+            rows_written bigint,
+            run_status string,
+            updated_at timestamp)
+            using delta
+          """
+          )</pre>
+</div>
+
+<!-- Cell 8: Markdown -->
+<div class="cell">
+<div class="cell-bar md-bar">Markdown — Cell 8</div>
+<div class="md-body">
+<h1>Step 3 — Source table configuration</h1>
+<p>This cell defines which tables will be loaded into bronze and which columns should be used as:</p>
+<ul>
+<li>primary key</li>
+<li>timestamp/watermark column</li>
+</ul>
+<p>It also creates a unique <strong>bronze_run_id</strong> for the current pipeline run.</p>
+</div>
+</div>
+
+<!-- Cell 9: Python -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 9 <span class="badge badge-ok">✓ Success</span></div>
+<pre class="code-body">tables_config ={
+    "orders" : {"pk_col" : "order_id","ts_col":"updated_at"},
+    "products":{"pk_col" : "product_id","ts_col":"updated_at"},
+    "payments":{"pk_col" : "payment_id","ts_col":"processed_at"}}
+
+
+bronze_run_id = str(uuid.uuid4())
+print("bronze_Run_ID:",bronze_run_id)</pre>
+</div>
+
+<!-- Cell 10: Markdown -->
+<div class="cell">
+<div class="cell-bar md-bar">Markdown — Cell 10</div>
+<div class="md-body">
+<h1>Step 4 — Helper functions</h1>
+<p>This cell contains reusable functions:</p>
+<ul>
+<li><code>get_last_sucessful_watermark()</code> reads the last processed watermark from the control table</li>
+<li><code>upsert_bronze_control()</code> updates the control table after a successful Bronze load</li>
+</ul>
+<p>These functions keep the main load logic cleaner and easier to understand.</p>
+</div>
+</div>
+
+<!-- Cell 11: Python -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 11 <span class="badge badge-ok">✓ Success</span></div>
+<pre class="code-body">def get_last_sucessful_watermark(table_name:str):
+    ctrl = (
+        spark.table("venk_novacart.bronze_schema.ingestion_control")
+        .filter(
+         (F.col("layer") == "bronze") &amp;
+         (F.col("table_name") == table_name) &amp;
+         (F.col("run_status") == "success")
+        )
+        .orderBy(F.col("updated_at").desc())
+        .limit(1) 
+    )
+    rows = ctrl.collect()
+    if not rows:
+        return None,None
+
+    return rows[0]["last_successful_ts"], rows[0]["last_successful_pk"]</pre>
+</div>
+
+<!-- Cell 12: Python -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 12 <span class="badge badge-ok">✓ Success</span></div>
+<pre class="code-body">from datetime import datetime, UTC
+from delta.tables import DeltaTable
+
+def upsert_bronze_control(table_name, ts_col, pk_col, last_ts, last_pk, rows_written, run_id):
+    control_df = spark.createDataFrame(
+        [(
+            "bronze",
+            table_name,
+            ts_col,
+            pk_col, 
+            last_ts,
+            int(last_pk) if last_pk is not None else None,
+            run_id,
+            int(rows_written),
+            "success",
+            datetime.now(UTC)
+        )], 
+        schema="""
+            layer string,
+            table_name string,
+            ts_col string, 
+            pk_col string,
+            last_successful_ts timestamp,
+            last_successful_pk bigint,
+            last_run_id string, 
+            rows_written bigint,
+            run_status string, 
+            updated_at timestamp
+        """
+    )
+
+    dt = DeltaTable.forName(spark, "venk_novacart.bronze_schema.ingestion_control")
+    
+    (dt.alias("t")
+        .merge(control_df.alias("s"), "t.table_name = s.table_name and t.layer = s.layer")
+        .whenMatchedUpdate(set={
+            "ts_col": "s.ts_col",
+            "pk_col": "s.pk_col",
+            "last_successful_ts": "s.last_successful_ts",
+            "last_successful_pk": "s.last_successful_pk",
+            "last_run_id": "s.last_run_id",
+            "rows_written": "s.rows_written",
+            "run_status": "s.run_status",
+            "updated_at": "s.updated_at"
+        })
+        .whenNotMatchedInsertAll()
+        .execute()
+    )</pre>
+</div>
+
+<!-- Cell 13: Markdown -->
+<div class="cell">
+<div class="cell-bar md-bar">Markdown — Cell 13</div>
+<div class="md-body">
+<h1>Step 5 — Bronze incremental load loop</h1>
+<p>This is the main Bronze logic:</p>
+<ol>
+<li>Reads the last watermark</li>
+<li>Reads the source SQL table</li>
+<li>Filters only <strong>new/changed rows</strong></li>
+<li>Adds Bronze audit columns</li>
+<li>Appends the rows into the Bronze Delta table</li>
+<li>Updates the control table</li>
+</ol>
+<p>This is the core incremental loading logic.</p>
+</div>
+</div>
+
+<!-- Cell 14: Markdown -->
+<div class="cell">
+<div class="cell-bar md-bar">Markdown — Cell 14</div>
+<div class="md-body">
+<h1>Step 6 — Quick validation</h1>
+<p>This final cell prints the Bronze row counts and displays the control table so you can verify that the incremental logic is working correctly.</p>
+</div>
+</div>
+
+<!-- Cell 15: Python (Error) -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 15 <span class="badge badge-err">✗ Error</span></div>
+<pre class="code-body">for table_name, cfg in tables_config.items():
+    pk_col = cfg["pk_col"]
+    ts_col = cfg["ts_col"]
+
+    source_table = f"`v_novacart_sql_connection_catalog`.dbo.{table_name}"
+    target_table = f"venk_novacart.bronze_schema.{table_name}_raw"
+
+    last_successful_ts, last_successful_pk = get_last_sucessful_watermark(table_name)
+
+    print(f"\n=== processing {table_name} ===")
+    print(f"last_successful_ts: {last_successful_ts}")
+    print(f"last_successful_pk: {last_successful_pk}")
+
+    source_df = spark.read.table(source_table).withColumn(
+        ts_col, F.col(ts_col).cast("timestamp")
+    )
+
+    #  Incremental logic
+    if last_successful_ts is None:
+        rows_to_load = source_df
+    else:
+        safe_pk = int(last_successful_pk) if last_successful_pk is not None else 0
+        rows_to_load = source_df.filter(
+            (F.col(ts_col) &gt; F.lit(last_successful_ts)) |
+            (
+                (F.col(ts_col) == F.lit(last_successful_ts)) &amp;
+                (F.col(pk_col).cast("long") &gt; F.lit(safe_pk))
+            )
+        )
+
+    # Metadata columns
+    rows_to_load = (
+        rows_to_load
+        .withColumn("bronze_ingested_at", F.current_timestamp())
+        .withColumn("bronze_run_id", F.lit(bronze_run_id))
+        .withColumn("bronze_source_table", F.lit(source_table))
+    )
+
+    rows_count = rows_to_load.count()
+    print(f"{table_name} rows to load: {rows_count}")
+
+    # Handle no data case
+    if rows_count == 0:
+        print(f"No new data to load for {table_name}")
+        upsert_bronze_control(
+            table_name,
+            ts_col,
+            pk_col,
+            last_successful_ts,
+            last_successful_pk,
+            rows_count,
+            bronze_run_id
+        )
+        continue
+
+    #  WRITE
+    rows_to_load.write.format("delta").mode("append").saveAsTable(target_table)
+
+    # Get max timestamp
+    max_ts = (
+        rows_to_load
+        .agg(F.max(ts_col).alias("max_ts"))
+        .collect()[0]["max_ts"]
+    )
+
+    #  Get max PK for that timestamp
+    max_pk = (
+        rows_to_load
+        .filter(F.col(ts_col) == F.lit(max_ts))
+        .agg(F.max(F.col(pk_col).cast("long")).alias("max_pk"))
+        .collect()[0]["max_pk"]
+    )
+
+    #  Update control table
+    upsert_bronze_control(
+        table_name,
+        ts_col,
+        pk_col,
+        max_ts,
+        max_pk,
+        rows_count,
+        bronze_run_id
+    )
+
+    print(f"Wrote {rows_count} rows to {target_table}")</pre>
+</div>
+
+<!-- Cell 16: Python (Skipped) -->
+<div class="cell">
+<div class="cell-bar code-bar">Python — Cell 16 <span class="badge badge-skip">⊘ Skipped</span></div>
+<pre class="code-body">print("orders Bronze Count:",spark.table("venk_novacart.bronze_schema.orders_raw").collect()[0][0])
+print("products Bronze Count:",spark.table("venk_novacart.bronze_schema.products_raw").collect()[0][0])
+print("payments Bronze Count:",spark.table("venk_novacart.bronze_schema.payments_raw").collect()[0][0])
+
+display(spark.sql("select * from venk_novacart.bronze_schema.ingestion_control").orderBy("table_name"))</pre>
+</div>
+
+<div class="footer">
+  Generated from Databricks notebook: <strong>Bronze_work</strong> — Incremental Bronze Ingestion<br>
+  Path: /Users/jaladikt005@gmail.com/V_Novacart_casestudy/Bronze_work
+</div>
+
+</body>
+</html>
