@@ -1,6 +1,6 @@
-# 🚀 NovaCart Lakehouse Data Engineering Project
+#  NovaCart Lakehouse Data Engineering Project
 
-## 📌 Overview
+##  Overview
 
 This project demonstrates an end-to-end **data engineering pipeline** for a fictional e-commerce platform, **NovaCart**. It showcases how to transform raw operational data into meaningful business insights using a modern **Lakehouse architecture**.
 
@@ -8,20 +8,18 @@ The pipeline is built using **Azure Databricks**, **Delta Lake**, and **Azure SQ
 
 ---
 
-## 🛒 Case Study
+## Case Study
 
 The system generates data across:
-
-* 🛍️ Products
-* 📦 Orders
-* 💳 Payments
+* Products
+* Orders
+* Payments
 
 This data is continuously evolving:
-
 * New records are inserted
 * Existing records are updated
 
-### 🎯 Objective
+### Objective
 
 Design a pipeline that:
 
@@ -31,7 +29,7 @@ Design a pipeline that:
 
 ---
 
-## 🖼️ Architecture Diagram
+##  Architecture Diagram
 
 ![Architecture](assets/architecture.png)
 
@@ -44,7 +42,7 @@ This architecture illustrates:
 
 ---
 
-## 🔄 Pipeline Flow
+##  Pipeline Flow
 
 ![Pipeline](assets/pipeline.png)
 
@@ -56,7 +54,7 @@ This flow highlights:
 
 ---
 
-## 🔌 Data Ingestion (Lakehouse Federation)
+##  Data Ingestion (Lakehouse Federation)
 
 * Source: **Azure SQL Database**
 * Access via **Databricks Lakehouse Federation (Unity Catalog)**
@@ -65,7 +63,7 @@ This flow highlights:
 
 ---
 
-## 🧱 Data Model
+##  Data Model
 
 * Products, Orders, and Payments are interconnected
 * Changes in one entity impact downstream outputs
@@ -73,7 +71,7 @@ This flow highlights:
 
 ---
 
-## 🔄 Pipeline Design (Medallion Architecture)
+## Pipeline Design (Medallion Architecture)
 
 ### 🥉 Bronze Layer — Raw
 
@@ -111,12 +109,12 @@ This flow highlights:
 
 ---
 
-## 🧑‍💻 Code Management
+## Code Management
 
 * Version-controlled using GitHub
 * Integrated with Databricks Repos
 
-### ✅ Benefits:
+### Benefits:
 
 * Collaboration
 * Version tracking
@@ -134,19 +132,17 @@ This flow highlights:
 * Dashboard refresh after pipeline completion
 * Alerts triggered automatically
 
----
 
 ## 📊 BI Dashboards
 
 The Gold layer enables:
-
-* 📈 Sales analytics
-* 💳 Payment monitoring
-* 🛒 Category insights
+*  Sales analytics
+*  Payment monitoring
+*  Category insights
 
 ---
 
-## 🔔 Alerts & Monitoring
+##  Alerts & Monitoring
 
 * Alerts on pipeline failures
 * Workflow-based triggers
@@ -154,7 +150,7 @@ The Gold layer enables:
 
 ---
 
-## ⚙️ Key Concepts Demonstrated
+##  Key Concepts Demonstrated
 
 * Incremental loading (no full reloads)
 * Watermark logic (timestamp + primary key)
@@ -165,7 +161,7 @@ The Gold layer enables:
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```bash
 📦 NovaCart-Lakehouse
@@ -180,24 +176,12 @@ The Gold layer enables:
  ┣ 📂 dashboards
  ┣ 📂 data
  ┗ 📜 README.md
-```
-
----
-
-## 💡 Why This Project Matters
-
-Most beginner projects:
-
-* Reload entire datasets
-* Lack orchestration
-* Ignore monitoring
-
 This project demonstrates real-world practices:
 
-* ✅ Incremental processing
-* ✅ Version-controlled pipelines
-* ✅ Automated workflows
-* ✅ Built-in monitoring and alerts
+*  Incremental processing
+* Version-controlled pipelines
+* Automated workflows
+* Built-in monitoring and alerts
 
 ---
 
@@ -212,9 +196,8 @@ This project demonstrates real-world practices:
 
 ## 👤 Author
 
-**Your Name**
+**Krishna Teja**
 
----
 
 ## ⭐ Acknowledgement
 
