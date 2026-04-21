@@ -163,20 +163,20 @@ The Gold layer enables:
 
 ## Project Structure
 
-```bash
 📦 NovaCart-Lakehouse
- ┣ 📂 assets
+ ┣ 📂 Alert
+ ┣ 📂 Assets
  ┃ ┣ 📜 architecture.png
  ┃ ┗ 📜 pipeline.png
- ┣ 📂 notebooks
+ ┣ 📂 Dashboards
+ ┣ 📂 NoteBooks
  ┃ ┣ 📜 bronze_ingestion
  ┃ ┣ 📜 silver_transformation
  ┃ ┗ 📜 gold_aggregation
- ┣ 📂 workflows
- ┣ 📂 dashboards
- ┣ 📂 data
- ┗ 📜 README.md
-This project demonstrates real-world practices:
+ ┣ 📂 Work_flows
+ ┣ 📂 raw_data
+ ┣ 📜 README.md
+
 
 *  Incremental processing
 * Version-controlled pipelines
