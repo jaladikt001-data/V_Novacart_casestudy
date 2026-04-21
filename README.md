@@ -29,29 +29,17 @@ Design a pipeline that:
 
 ---
 
-## Architecture Diagram
-
-<p align="center">
-  <img src="Assets/architecture.png" width="700"/>
-  <br>
-  <em>Figure 1: Lakehouse Architecture Overview</em>
-</p>
-
-This architecture illustrates:
-
-- Data ingestion from Azure SQL
-- Processing in Azure Databricks
-- Storage using Delta Lake
-- BI dashboards and alerting
-
----
-
-## Pipeline Flow
+## ## Architecture Diagram and pipeline flow
 
 <p align="center">
   <img src="nova_cart-project_architecture.jpg" width="700"/>
 </p>
 
+- Data ingestion from Azure SQL
+- Processing in Azure Databricks
+- Storage using Delta Lake
+- BI dashboards and alerting
+- 
 This flow highlights:
 
 - Medallion Architecture (Bronze → Silver → Gold)
