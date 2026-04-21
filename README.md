@@ -144,7 +144,7 @@ The Gold layer enables:
 
 ---
 
-## Key Concepts Demonstrated
+## Key Concepts
 
 - Incremental loading (no full reloads)
 - Watermark logic (timestamp + primary key)
@@ -152,8 +152,4 @@ The Gold layer enables:
 - Control tables for state tracking
 - Idempotent pipeline design
 - Slowly Changing Dimension (SCD Type 2)
-
----
-
-## Project Structure
 
