@@ -39,7 +39,7 @@ Design a pipeline that:
 - Processing in Azure Databricks
 - Storage using Delta Lake
 - BI dashboards and alerting
-- 
+  
 This flow highlights:
 
 - Medallion Architecture (Bronze → Silver → Gold)
