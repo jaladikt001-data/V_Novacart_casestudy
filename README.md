@@ -49,9 +49,7 @@ This architecture illustrates:
 ## Pipeline Flow
 
 <p align="center">
-  <img src="Assets/pipeline.png" width="700"/>
-  <br>
-  <em>Figure 2: Medallion Architecture Pipeline Flow</em>
+  <img src="nova_cart-project_architecture.jpg" width="700"/>
 </p>
 
 This flow highlights:
