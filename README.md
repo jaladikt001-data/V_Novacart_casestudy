@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project demonstrates an end-to-end **data engineering pipeline** for a fictional e-commerce platform, **NovaCart**. It showcases how to transform raw operational data into meaningful business insights using a modern **Lakehouse architecture**.
+This project shows an end-to-end **data engineering pipeline** for a fictional e-commerce platform, **NovaCart**. It showcases how to transform raw operational data into meaningful business insights using a modern **Lakehouse architecture**.
 
 The pipeline is built using **Azure Databricks**, **Delta Lake**, and **Azure SQL Database**, following real-world best practices like incremental processing, orchestration, and monitoring.
 
